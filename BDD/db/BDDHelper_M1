@@ -1,0 +1,80 @@
+import React, { useEffect, useState } from 'react';
+import SQLite from 'react-native-sqlite-storage';
+
+const databaseName = 'BDDM1';
+const databaseVersion = '1';
+
+const DBHelper_M1 = () => {
+  const [database, setDatabase] = useState(null);
+
+  useEffect(() => {
+    const db = SQLite.openDatabase(
+      { name: databaseName, location: 'default' },
+      () => {
+        console.log('Database opened successfully');
+        setDatabase(db);
+      },
+      (error) => {
+        console.error('Error opening database', error);
+      }
+    );
+
+    return () => {
+      if (database) {
+        database.close(() => console.log('Database closed successfully'));
+      }
+    };
+  }, []);
+
+  const getRandomId = () => {
+    const minId = 1001;
+    const maxId = 1475;
+
+    return Math.floor(Math.random() * (maxId - minId + 1)) + minId;
+  };
+
+  const executeSql = (sql, params = []) =>
+    new Promise((resolve, reject) => {
+      if (!database) {
+        reject('Database not initialized');
+        return;
+      }
+
+      database.transaction((tx) => {
+        tx.executeSql(
+          sql,
+          params,
+          (_, resultSet) => resolve(resultSet),
+          (_, error) => reject(error)
+        );
+      });
+    });
+
+  const getQuestion = async (randomId) => {
+    try {
+      const result = await executeSql(
+        'SELECT question FROM BDDM1 WHERE id = ?',
+        [randomId]
+      );
+
+      if (result.rows.length > 0) {
+        return result.rows.item(0).question;
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error getting question', error);
+      return null;
+    }
+  };
+
+  // Ajoutez d'autres méthodes selon vos besoins...
+
+  return {
+    getRandomId,
+    getQuestion,
+    // Ajoutez d'autres méthodes selon vos besoins...
+  };
+};
+
+export default DBHelper_M1;
